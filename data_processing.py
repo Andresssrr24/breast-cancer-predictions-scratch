@@ -1,46 +1,27 @@
 import pandas as pd
 import numpy as np
-from sklearn.compose import ColumnTransformer
+#from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
 
 dataset = pd.read_csv('data.csv')
 print(dataset.head())
 
-# Split data in X and Y
-def data_split(dataset):
-    X = dataset[["radius_mean","texture_mean","perimeter_mean","area_mean",
-                "smoothness_mean","compactness_mean","concavity_mean",
-                "concave points_mean","symmetry_mean","fractal_dimension_mean",
-                "radius_se","texture_se","perimeter_se","area_se","smoothness_se",
-                "compactness_se","concavity_se","concave points_se","symmetry_se",
-                "fractal_dimension_se","radius_worst","texture_worst","perimeter_worst",
-                "area_worst","smoothness_worst","compactness_worst","concavity_worst",
-                "concave points_worst","symmetry_worst","fractal_dimension_worst"]]
-    Y = dataset[['diagnosis']]
+def process_data(dataset, target_col='diagnosis', test_size=0.2, random_state=42):
+    # Split data in X and Y
+    X = dataset.drop(columns=[target_col])
+    Y = dataset[target_col]
 
-    return X, Y
+    # Shuffle data
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=test_size, random_state=random_state, shuffle=True)
 
-# Randomize samples order
-def shuffle_data(X, Y):
-    X = X.sample(frac=1)
-    Y = Y.sample(frac=1)
+    #Normalization
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train).T  # (32, 455)
+    X_test = scaler.fit_transform(X_test).T  # (32, 114)
 
-    return X, Y
-
-# Split in train and test sets
-def train_val_split(X, Y):
-    train_ratio = 0.8
-    test_ratio = 0.2
-
-    X_train = X[:int(len(X) * train_ratio)]
-    X_test = X[:int(len(X) * test_ratio)]
-
-    Y_train = Y[:int(len(Y) * train_ratio)]
-    Y_test = Y[:int(len(Y) * test_ratio)]
+    # Reshape Y
+    Y_train = Y_train.values.reshape(1, -1)  # (1, 455)
+    Y_test = Y_test.values.reshape(1, -1)  # (1, 114)
 
     return X_train, X_test, Y_train, Y_test
-
-# Normalization
-def input_normalization():
-    pass
-
-

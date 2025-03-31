@@ -25,4 +25,4 @@ def process_data(dataset, target_col='diagnosis', test_size=0.2, random_state=42
 
     return X_train, X_test, Y_train, Y_test
 
-X_train, X_test, Y_train, Y_test = process_data(dataset)
+split_data = process_data(dataset)

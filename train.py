@@ -1,12 +1,12 @@
 from breast_cancer_pred_mlp import NeuralNet
-from data_processing import split_data
+from data_processing import process_data, dataset
 import numpy as np
 import csv
 
 models_parameters = {}
 counter = 0
 for i in range(20):
-    X_train, X_test, Y_train, Y_test = split_data
+    X_train, X_test, Y_train, Y_test = process_data(dataset)
     nn = NeuralNet(layers_dims=[X_train.shape[0], 15, 10, 5, 1])  # [X_train.shape[0], 3, 1]
 
     # Training function
@@ -42,7 +42,7 @@ for i in range(20):
     print(f'Training MSE: {train_mse:.7f}')
     print(f'Test MSE: {test_mse:.7f}')
 
-    np.savez(f'/Users/Admin/Documents/MachineLearning/breast-cancer-predictions-scratch/models/model_parameters{counter}.npz')
+    np.savez(f'/Users/Admin/Documents/MachineLearning/breast-cancer-predictions-scratch/models/model_parameters{counter}.npz', **parameters)
 
     with open("models_parameters.csv", "a", newline="") as f:
         w = csv.writer(f)

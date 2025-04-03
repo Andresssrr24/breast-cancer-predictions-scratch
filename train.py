@@ -4,20 +4,21 @@ import numpy as np
 import csv
 
 models_parameters = {}
-counter = 0
+counter = 60
 for i in range(20):
     X_train, X_test, Y_train, Y_test = process_data(dataset)
-    nn = NeuralNet(layers_dims=[X_train.shape[0], 15, 10, 5, 1])  # [X_train.shape[0], 3, 1]
+    nn = NeuralNet(layers_dims=[X_train.shape[0], 8, 5, 1])
 
     # Training function
     def train(X, Y, num_iterations, lr):
         costs = []
+        t = 0
 
         for i in range(num_iterations):
             AL, caches = nn.forward(X)
-            L2_loss = nn.loss(AL, Y, lambd=0.0005)
+            L2_loss = nn.loss(AL, Y, lambd=0.0001)
             grads = nn.backpropagation(AL, Y, caches)
-            parameters = nn.grad_desc(grads, lr=lr)
+            parameters = nn.adam(grads, t, lr=lr, beta1=0.9, beta2=0.999, epsilon=1e-8)
 
             if i % 100 == 0:
                 print(f'Cost on iteration {i}: {L2_loss}')
@@ -28,16 +29,24 @@ for i in range(20):
     # Make predictions to calculate accuracy
     def predictions(X):
         AL, _ = nn.forward(X)
+        predictions = (AL > 0.5).astype(int)
 
-        return AL
+        return predictions
 
-    parameters = train(X_train, Y_train, num_iterations=8000, lr=0.02) # 0.007
+    parameters = train(X_train, Y_train, num_iterations=6000, lr=0.0001) 
 
     Y_train_preds = predictions(X_train)
     Y_test_preds = predictions(X_test)
 
+
+    train_accuracy = np.mean(Y_train_preds == Y_train) * 100
+    test_accuracy = np.mean(Y_test_preds == Y_test) * 100
+ 
     train_mse = np.mean((Y_train_preds - Y_train)) ** 2
     test_mse = np.mean((Y_test_preds - Y_test)) ** 2
+
+    print(f'\nTrain accuracy: {train_accuracy:.2f}%')
+    print(f'Test accuracy: {test_accuracy:.2f}%')
 
     print(f'Training MSE: {train_mse:.7f}')
     print(f'Test MSE: {test_mse:.7f}')
@@ -48,7 +57,7 @@ for i in range(20):
         w = csv.writer(f)
         if counter == 0:
             w.writerow(["Model ID", "Train MSE", "Test MSE"])
-        w.writerow([f"model_{counter}", train_mse, test_mse])
-
+        w.writerow([f"model_{counter}", train_mse, test_mse, train_accuracy, test_accuracy])
+        
     counter += 1
 

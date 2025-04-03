@@ -101,7 +101,7 @@ class NeuralNet:
             dZ = dA * (np.where(Z > 0, 1, 0))  # relu derivative
         elif activation == 'sigmoid':
             s = self.sigmoid(Z)
-            dZ = dA * (s * (1 - s))
+            dZ = dA * (s * (1 - s))  # sigmoid derivative
 
         dA_prev, dW, db = self.linear_backward(dZ, linear_cache)
 
@@ -112,31 +112,59 @@ class NeuralNet:
 
         L = len(caches)
         m = AL.shape[1]
-        AL = np.clip(AL, 1e-10, 1 - 1e-10)  # Avoid Y/0
+        AL = np.clip(AL, 1e-10, 1 - 1e-10)
         dAL = - (np.divide(Y, AL) - np.divide(1 - Y, 1 - AL))
 
         current_cache = caches[L-1]
         dA_prev_temp, dW_temp, db_temp = self.backward_activation(dAL, current_cache, 'sigmoid')
-        grads['dA' + str(L-1)] = dA_prev_temp
-        grads['dW' + str(L)] = dW_temp
-        grads['db' + str(L)] = db_temp
+        grads[f'dA{str(L-1)}'] = dA_prev_temp
+        grads[f'dW{str(L)}'] = dW_temp
+        grads[f'db{str(L)}'] = db_temp
 
         for l in reversed(range(L-1)):
             current_cache = caches[l]
             dA_prev_temp, dW_temp, db_temp = self.backward_activation(grads['dA' + str(l+1)], current_cache, 'relu')
-            grads['dA' + str(l)] = dA_prev_temp
-            grads['dW' + str(l+1)] = dW_temp
-            grads['db' + str(l+1)] = db_temp
+            grads[f'dA{str(l)}'] = dA_prev_temp
+            grads[f'dW{str(l+1)}'] = dW_temp
+            grads[f'db{str(l+1)}'] = db_temp
 
         return grads
     
     # /---------------------------------------/
     # Optimization
-    def grad_desc(self, grads, lr):
-        L = len(self.parameters) // 2
+    def adam(self, grads, t, lr, beta1, beta2, epsilon):
+        L= len(self.parameters) // 2
+        v = {}
+        s = {}
+        v_corrected = {}
+        s_corrected = {}
 
-        for l in range(L):
-            self.parameters['W' + str(l+1)] = self.parameters['W' + str(l+1)] - lr * grads['dW' + str(l+1)]
-            self.parameters['b' + str(l+1)] = self.parameters['b' + str(l+1)] - lr * grads['db' + str(l+1)]
+        # Moments initialization
+        for l in range(1, L + 1):
+            v[f'dW{str(l)}'] = np.zeros((self.parameters[f'W{str(l)}'].shape))
+            v[f'db{str(l)}'] = np.zeros((self.parameters[f'b{str(l)}'].shape))
+            s[f'dW{str(l)}'] = np.zeros((self.parameters[f'W{str(l)}'].shape))
+            s[f'db{str(l)}'] = np.zeros((self.parameters[f'b{str(l)}'].shape))
 
+        t += 1
+
+        for l in range(1, L + 1):
+            # Moment 1
+            v[f'dW{str(l)}'] = beta1 * v[f'dW{str(l)}'] + (1 - beta1) * grads[f'dW{str(l)}']
+            v[f'db{str(l)}'] = beta1 * v[f'db{str(l)}'] + (1 - beta1) * grads[f'db{str(l)}']
+
+            v_corrected[f'dW{str(l)}'] = v[f'dW{str(l)}'] / (1 - (beta1 ** t))
+            v_corrected[f'db{str(l)}'] = v[f'db{str(l)}'] / (1 - (beta1 ** t))
+
+            # Moment 2
+            s[f'dW{str(l)}'] = beta2 * s[f'dW{str(l)}'] + (1 - beta2) * np.square(grads[f'dW{str(l)}'])
+            s[f'db{str(l)}'] = beta2 * s[f'db{str(l)}'] + (1 - beta2) * np.square(grads[f'db{str(l)}'])
+
+            s_corrected[f'dW{str(l)}'] = s[f'dW{str(l)}'] / (1 - (beta2 ** t))
+            s_corrected[f'db{str(l)}'] = s[f'db{str(l)}'] / (1 - (beta2 ** t))
+
+            # Parameter update
+            self.parameters[f'W{str(l)}'] = self.parameters[f'W{str(l)}'] - lr * (v_corrected[f'dW{str(l)}'] / (np.sqrt(s_corrected[f'dW{str(l)}']) + epsilon))
+            self.parameters[f'b{str(l)}'] = self.parameters[f'b{str(l)}'] - lr * (v_corrected[f'db{str(l)}'] / (np.sqrt(s_corrected[f'db{str(l)}']) + epsilon))
+            
         return self.parameters
